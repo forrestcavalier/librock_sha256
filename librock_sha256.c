@@ -1,4 +1,6 @@
-/*
+/* librock_sha256.c, adapted from picosha2.h, which is a C++ header-only version
+	https://github.com/okdshin/PicoSHA2/blob/master/picosha2.h
+	
 The MIT License (MIT)
 
 Copyright (C) 2014 okdshin
@@ -21,32 +23,30 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
-#ifndef PICOSHA2_H
-#define PICOSHA2_H
-//picosha2:20140213
-#include <iostream>
-#include <vector>
-#include <iterator>
-#include <cassert>
-#include <sstream>
-#include <algorithm>
+//#include <iostream>
+//#include <vector>
+//#include <iterator>
+//#include <cassert>
+//#include <sstream>
+//#include <algorithm>
 
-namespace picosha2
-{
+//namespace picosha2
+//namespace {
 typedef unsigned long word_t;
 typedef unsigned char byte_t;
-
-namespace detail 
-{
-byte_t mask_8bit(byte_t x){
+#include <string.h> //memset
+#define PRIVATE static
+//namespace detail 
+//namespace {
+PRIVATE byte_t mask_8bit(byte_t x){
 	return x&0xff;
 }
 
-word_t mask_32bit(word_t x){
+PRIVATE word_t mask_32bit(word_t x){
 	return x&0xffffffff;
 }
 
-const word_t add_constant[64] = {
+PRIVATE const word_t add_constant[64] = {
 	0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5,
 	0x3956c25b, 0x59f111f1, 0x923f82a4, 0xab1c5ed5,
 	0xd807aa98, 0x12835b01, 0x243185be, 0x550c7dc3,
@@ -64,70 +64,75 @@ const word_t add_constant[64] = {
 	0x748f82ee, 0x78a5636f, 0x84c87814, 0x8cc70208,
 	0x90befffa, 0xa4506ceb, 0xbef9a3f7, 0xc67178f2
 };
-
+#if 0
 const word_t initial_message_digest[8] = {
 	0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a, 
 	0x510e527f, 0x9b05688c, 0x1f83d9ab, 0x5be0cd19
 };
+#endif
 
-word_t ch(word_t x, word_t y, word_t z){
+PRIVATE word_t ch(word_t x, word_t y, word_t z){
 	return (x&y)^((~x)&z);
 }
 
-word_t maj(word_t x, word_t y, word_t z){
+PRIVATE word_t maj(word_t x, word_t y, word_t z){
 	return (x&y)^(x&z)^(y&z);
 }
 
-word_t rotr(word_t x, std::size_t n){
-	assert(n < 32);
+PRIVATE word_t rotr(word_t x, /*std::size_t*/unsigned n){
+//	assert(n < 32);
 	return mask_32bit((x>>n)|(x<<(32-n)));
 }
 
-word_t bsig0(word_t x){
+PRIVATE word_t bsig0(word_t x){
 	return rotr(x, 2)^rotr(x, 13)^rotr(x, 22);
 }
 
-word_t bsig1(word_t x){
+PRIVATE word_t bsig1(word_t x){
 	return rotr(x, 6)^rotr(x, 11)^rotr(x, 25);
 }
 
-word_t shr(word_t x, std::size_t n){
-	assert(n < 32);
+PRIVATE word_t shr(word_t x, /*std::size_t*/unsigned n){
+//	assert(n < 32);
 	return x >> n;
 }
 
-word_t ssig0(word_t x){
+PRIVATE word_t ssig0(word_t x){
 	return rotr(x, 7)^rotr(x, 18)^shr(x, 3);
 }
 
-word_t ssig1(word_t x){
+PRIVATE word_t ssig1(word_t x){
 	return rotr(x, 17)^rotr(x, 19)^shr(x, 10);
 }
 
-template<typename RaIter1, typename RaIter2>
-void hash256_block(RaIter1 message_digest, RaIter2 first, RaIter2 last){
+//template<typename RaIter1, typename RaIter2>
+//void hash256_block(RaIter1 message_digest, RaIter2 first, RaIter2 last){
+void hash256_block(word_t *message_digest, unsigned char const *first/*, unsigned char const * last*/){
 	word_t w[64];
-	std::fill(w, w+64, 0);
-	for(std::size_t i = 0; i < 16; ++i){
-		w[i] = (static_cast<word_t>(mask_8bit(*(first+i*4)))<<24)
-			|(static_cast<word_t>(mask_8bit(*(first+i*4+1)))<<16) 
-			|(static_cast<word_t>(mask_8bit(*(first+i*4+2)))<<8)
-			|(static_cast<word_t>(mask_8bit(*(first+i*4+3)))); 
+	unsigned i;
+	word_t a,b,c,d,e,f,g,h;
+	memset(w,'\0',sizeof w);//	std::fill(w, w+64, 0);
+	
+	for(/*std::size_t*/i = 0; i < 16; ++i){
+		w[i] = ((word_t)(mask_8bit(*(first+i*4)))<<24)
+			|((word_t)(mask_8bit(*(first+i*4+1)))<<16) 
+			|((word_t)(mask_8bit(*(first+i*4+2)))<<8)
+			|((word_t)(mask_8bit(*(first+i*4+3)))); 
 	}
-	for(std::size_t i = 16; i < 64; ++i){
+	for(/*std::size_t*/i = 16; i < 64; ++i){
 		w[i] = mask_32bit(ssig1(w[i-2])+w[i-7]+ssig0(w[i-15])+w[i-16]);
 	}
 	
-	word_t a = *message_digest;
-	word_t b = *(message_digest+1);
-	word_t c = *(message_digest+2);
-	word_t d = *(message_digest+3);
-	word_t e = *(message_digest+4);
-	word_t f = *(message_digest+5);
-	word_t g = *(message_digest+6);
-	word_t h = *(message_digest+7);
+	a = *message_digest;
+	b = *(message_digest+1);
+	c = *(message_digest+2);
+	d = *(message_digest+3);
+	e = *(message_digest+4);
+	f = *(message_digest+5);
+	g = *(message_digest+6);
+	h = *(message_digest+7);
 	
-	for(std::size_t i = 0; i < 64; ++i){
+	for(/*std::size_t*/ i = 0; i < 64; ++i){
 		word_t temp1 = h+bsig1(e)+ch(e,f,g)+add_constant[i]+w[i];
 		word_t temp2 = bsig0(a)+maj(a,b,c);
 		h = g;
@@ -147,213 +152,149 @@ void hash256_block(RaIter1 message_digest, RaIter2 first, RaIter2 last){
 	*(message_digest+5) += f;
 	*(message_digest+6) += g;
 	*(message_digest+7) += h;
-	for(std::size_t i = 0; i < 8; ++i){
+	for(/*std::size_t*/ i = 0; i < 8; ++i){
 		*(message_digest+i) = mask_32bit(*(message_digest+i));
 	}
 }
+typedef struct {
+//	std::vector<byte_t> buffer_;
+	word_t data_length_digits_[4]; //as 64bit integer (16bit x 4 integer)
+	word_t h_[8];
+	unsigned char buffer[64];
+	int nBuffer;
+} SHA256_CTX;
 
-}//namespace detail
-
-template<typename InIter>
-void output_hex(InIter first, InIter last, std::ostream& os){
-	os.setf(std::ios::hex, std::ios::basefield);
-	while(first != last){
-		os.width(2);
-		os.fill('0');
-		os << static_cast<unsigned int>(*first);
-		++first;
-	}	
-	os.setf(std::ios::dec, std::ios::basefield);
+int librock_SHA256_Init(SHA256_CTX *c)
+{
+	if (!c) {//mibsoftware.com Allow caller to use opaque structures.
+		return sizeof(*c);
+	}
+	memset (c,0,sizeof(*c));
+	c->h_[0]=0x6a09e667UL;	c->h_[1]=0xbb67ae85UL;
+	c->h_[2]=0x3c6ef372UL;	c->h_[3]=0xa54ff53aUL;
+	c->h_[4]=0x510e527fUL;	c->h_[5]=0x9b05688cUL;
+	c->h_[6]=0x1f83d9abUL;	c->h_[7]=0x5be0cd19UL;
+	c->nBuffer = 0;
+	//c->md_len=SHA256_DIGEST_LENGTH;
+	return 1;
 }
 
-template<typename InIter>
-void bytes_to_hex_string(InIter first, InIter last, std::string& hex_str){
-	std::ostringstream oss;
-	output_hex(first, last, oss);
-	hex_str.assign(oss.str());
-}
+int librock_SHA256_Update(SHA256_CTX *c, const void *data_, size_t len)
+{
+		int i = 0;
 
-template<typename InContainer>
-void bytes_to_hex_string(const InContainer& bytes, std::string& hex_str){
-	bytes_to_hex_string(bytes.begin(), bytes.end(), hex_str);
-}
-
-template<typename InIter>
-std::string bytes_to_hex_string(InIter first, InIter last){
-	std::string hex_str;
-	bytes_to_hex_string(first, last, hex_str);
-	return hex_str;
-}
-
-template<typename InContainer>
-std::string bytes_to_hex_string(const InContainer& bytes){
-	std::string hex_str;
-	bytes_to_hex_string(bytes, hex_str);
-	return hex_str;
-}
-
-class hash256_one_by_one {
-public:
-	hash256_one_by_one(){
-		init();
-	}
-
-	void init(){
-		buffer_.clear();
-		std::fill(data_length_digits_, data_length_digits_+4, 0);
-		std::copy(detail::initial_message_digest, detail::initial_message_digest+8, h_);
-	}
-
-	template<typename RaIter>
-	void process(RaIter first, RaIter last){
-		add_to_data_length(std::distance(first, last));
-		std::copy(first, last, std::back_inserter(buffer_));
-		std::size_t i = 0;
-		for(;i+64 <= buffer_.size(); i+=64){
-			detail::hash256_block(h_, buffer_.begin()+i, buffer_.begin()+i+64);	
-		}
-		buffer_.erase(buffer_.begin(), buffer_.begin()+i);
-	}
-
-	void finish(){
-		byte_t temp[64];
-		std::fill(temp, temp+64, 0);
-		std::size_t remains = buffer_.size();
-		std::copy(buffer_.begin(), buffer_.end(), temp);
-		temp[remains] = 0x80;
-
-		if(remains > 55){
-			std::fill(temp+remains+1, temp+64, 0);
-			detail::hash256_block(h_, temp, temp+64);
-			std::fill(temp, temp+64-4, 0);
-		}
-		else {
-			std::fill(temp+remains+1, temp+64-4, 0);
-		}
-
-		write_data_bit_length(&(temp[56]));
-		detail::hash256_block(h_, temp, temp+64);
-	}
-
-	template<typename OutIter>
-	void get_hash_bytes(OutIter first, OutIter last)const{
-		for(const word_t* iter = h_; iter != h_+8; ++iter){
-			for(std::size_t i = 0; i < 4 && first != last; ++i){
-				*(first++) = detail::mask_8bit(static_cast<byte_t>((*iter >> (24-8*i))));
-			}
-		}
-	}
-
-private:
-	void add_to_data_length(word_t n) {
+	{
+		unsigned j;
 		word_t carry = 0;
-		data_length_digits_[0] += n;
-		for(std::size_t i = 0; i < 4; ++i) {
-			data_length_digits_[i] += carry;
-			if(data_length_digits_[i] >= 65536u) {
-				data_length_digits_[i] -= 65536u;
-				carry = 1;
+		c->data_length_digits_[0] += len;
+		for(/*std::size_t*/j = 0; j < 4; ++j) {
+			c->data_length_digits_[j] += carry;
+			if(c->data_length_digits_[j] >= 65536u) {
+				carry = (c->data_length_digits_[j]>>16); //20161104 was carry=1
+				c->data_length_digits_[j] &= 65535u; //20161104 was -= 65536u.
 			}
 			else {
 				break;
 			}
 		}
 	}
-	void write_data_bit_length(byte_t* begin) {
-		word_t data_bit_length_digits[4];
-		std::copy(
-			data_length_digits_, data_length_digits_+4, 
-			data_bit_length_digits
-		);
 
-		// convert byte length to bit length (multiply 8 or shift 3 times left)
-		word_t carry = 0;
-		for(std::size_t i = 0; i < 4; ++i) {
-			word_t before_val = data_bit_length_digits[i];
-			data_bit_length_digits[i] <<= 3;
-			data_bit_length_digits[i] |= carry;
-			data_bit_length_digits[i] &= 65535u;
-			carry = (before_val >> (16-3)) & 65535u;
+		
+		while(len - i + c->nBuffer >= 64) {
+			memcpy(c->buffer+c->nBuffer,(char *)data_+i,64 - c->nBuffer);
+			i += 64 - c->nBuffer;
+			hash256_block(c->h_, c->buffer);
+			c->nBuffer = 0;
+			printf("%d\n",i);
 		}
+		memcpy(c->buffer+c->nBuffer,(char *)data_+i,len - i);
+		c->nBuffer = len - i;
+		memset(c->buffer+c->nBuffer,'\0',64 - c->nBuffer);
+		return 1;
+}
+int librock_SHA256_StoreFinal (unsigned char *md, SHA256_CTX *c)
+{
 
-		// write data_bit_length
-		for(int i = 3; i >= 0; --i) {
-			(*begin++) = static_cast<byte_t>(data_bit_length_digits[i] >> 8);
-			(*begin++) = static_cast<byte_t>(data_bit_length_digits[i]);
+		int i;
+		c->buffer[c->nBuffer] = 0x80;
+
+		if(c->nBuffer > 55){
+			memset(c->buffer+c->nBuffer+1,'\0', 64-c->nBuffer-1);
+			hash256_block(c->h_, c->buffer);
+			memset(c->buffer+c->nBuffer+1,'\0', 56);
 		}
+		else {
+			memset(c->buffer+c->nBuffer+1,'\0', 56-c->nBuffer-1);
+		}
+/* write data bit length *///		write_data_bit_length(&(temp[56]));
+
+		{
+				// convert byte length to bit length (multiply 8 or shift 3 times left)
+				unsigned char *begin  = &(c->buffer[56]);
+				word_t carry = 0;
+				int i;
+				for(/*std::size_t*/ i = 0; i < 4; ++i) {
+					word_t before_val = c->data_length_digits_[i];
+					c->data_length_digits_[i] <<= 3;
+					c->data_length_digits_[i] |= carry;
+					c->data_length_digits_[i] &= 65535u;
+					carry = (before_val >> (16-3)) & 65535u;
+				}
+
+				// write data_bit_length
+				for(/*int*/ i = 3; i >= 0; --i) {
+					(*begin++) = (unsigned char)(c->data_length_digits_[i] >> 8);
+					(*begin++) = (unsigned char)(c->data_length_digits_[i]);
+				}
+		}		
+		hash256_block(c->h_, c->buffer);
+		for(/*int*/ i = 0; i < 8; i++) {
+			*md++ = (c->h_[i]>>24) & 0xff;
+			*md++ = (c->h_[i]>>16) & 0xff;
+			*md++ = (c->h_[i]>>8) & 0xff;
+			*md++ = (c->h_[i]) & 0xff;
+		}
+		return 1;
+}
+	
+#if 1 //Typical use mibsoftware.com
+#include <stdio.h>
+#include <stdlib.h> //malloc
+void dumpmem(unsigned char *md,int len)
+{int i;
+	for(i = 0;i < len;i++) {
+		printf("%02x",md[i]);
 	}
-	std::vector<byte_t> buffer_;
-	word_t data_length_digits_[4]; //as 64bit integer (16bit x 4 integer)
-	word_t h_[8];
-};
-
-void get_hash_hex_string(const hash256_one_by_one& hasher, std::string& hex_str){
-	byte_t hash[32];
-	hasher.get_hash_bytes(hash, hash+32);
-	return bytes_to_hex_string(hash, hash+32, hex_str);
+	printf("\n");
 }
 
-std::string get_hash_hex_string(const hash256_one_by_one& hasher){
-	std::string hex_str;
-	get_hash_hex_string(hasher, hex_str);
-	return hex_str;
-}
+int main()
+{
+	unsigned char md[32];
+    char *str = "This is a test string.";
+	int len;
+	void *pHashInfo;
+	str = "abc";
+	str = "abcdefghbcdefghicdefghijdefghijkefghijklfghijklmghijklmnhijklmnoijklmnopjklmnopqklmnopqrlmnopqrsmnopqrstnopqrstu";
+	/* expect cf5b16a778af8380036ce59e7b0492370b249b11e8f07a51afac45037afee9d1 */
+    len = strlen(str);
+#if 1
+	len = 1000000;
+	str = malloc(len+1);
+	memset(str,'a',len);
+	/* expect cdc76e5c 9914fb92 81a1c7e2 84d73e67 f1809a48 a497200e 046d39cc c7112cd0 */
+	str[len] = 0;
+#endif
+	pHashInfo = malloc(librock_SHA256_Init(0)/*Get size */);
 
-template<typename RaIter, typename OutIter>
-void hash256(RaIter first, RaIter last, OutIter first2, OutIter last2){
-	hash256_one_by_one hasher;
-	//hasher.init();
-	hasher.process(first, last);
-	hasher.finish();
-	hasher.get_hash_bytes(first2, last2);
-}
+    librock_SHA256_Init( pHashInfo );
 
-template<typename RaIter, typename OutContainer>
-void hash256(RaIter first, RaIter last, OutContainer& dst){
-	hash256(first, last, dst.begin(), dst.end());
-}
+    librock_SHA256_Update( pHashInfo, ( unsigned char * ) str, len );
+	dumpmem((unsigned char *)pHashInfo,32);
 
-template<typename RaContainer, typename OutIter>
-void hash256(const RaContainer& src, OutIter first, OutIter last){
-	hash256(src.begin(), src.end(), first, last);
-}
-
-template<typename RaContainer, typename OutContainer>
-void hash256(const RaContainer& src, OutContainer& dst){
-	hash256(src.begin(), src.end(), dst.begin(), dst.end());
-}
-
-
-template<typename RaIter>
-void hash256_hex_string(RaIter first, RaIter last, std::string& hex_str){
-	byte_t hashed[32];
-	hash256(first, last, hashed, hashed+32);
-	std::ostringstream oss;
-	output_hex(hashed, hashed+32, oss);
-	hex_str.assign(oss.str());
-}
-
-template<typename RaIter>
-std::string hash256_hex_string(RaIter first, RaIter last){
-	std::string hex_str;
-	hash256_hex_string(first, last, hex_str);
-	return hex_str;
-}
-
-void hash256_hex_string(const std::string& src, std::string& hex_str){
-	hash256_hex_string(src.begin(), src.end(), hex_str);
-}
-
-template<typename RaContainer>
-void hash256_hex_string(const RaContainer& src, std::string& hex_str){
-	hash256_hex_string(src.begin(), src.end(), hex_str);
-}
-
-template<typename RaContainer>
-std::string hash256_hex_string(const RaContainer& src){
-	return hash256_hex_string(src.begin(), src.end());
-}
-
-}//namespace picosha2
-
-#endif //PICOSHA2_H
+    librock_SHA256_StoreFinal( md,pHashInfo );
+	dumpmem(md,sizeof(md));
+	free(pHashInfo);
+	return 0;
+} /* main */
+#endif
