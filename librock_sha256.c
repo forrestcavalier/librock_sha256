@@ -1,11 +1,14 @@
 /* librock_sha256.c, an implementation of SHA-256 in C.
 
-This conforms to the librock C portability guidelines.
+Part of libROCK: QUICK REUSE WITHOUT CHANGES!
+- MIT License
+- High-Quality. Highly portable. Compiles on gcc/MSVC/Clang/Windows/Linux/BSD/more.
+- Global names start "librock_", for compatibility.
 
 This file consists of
-    [[The MIT License]]
+    [[The MIT License]] (and copyright statement.)
 
-    [[okdshin's picosha2, adapted to C. static (PRIVATE)]]
+    [[okdshin's C++ picosha2, adapted to C. static (PRIVATE)]]
 
     [[librock_sha256, (PUBLIC)]]
         typedef struct librock_SHA256_CTX *librock_SHA256_CTX_t; // Opaque structure.
@@ -266,7 +269,7 @@ int librock_SHA256_StoreFinal (unsigned char *md, struct librock_SHA256_CTX *c)
     if(c->nBuffer > 55) {
         memset(c->buffer+c->nBuffer+1,'\0', 64-c->nBuffer-1);
         hash256_block(c->h_, c->buffer);
-        memset(c->buffer+c->nBuffer+1,'\0', 56);
+        memset(c->buffer,'\0', 56);
     } else {
         memset(c->buffer+c->nBuffer+1,'\0', 56-c->nBuffer-1);
     }
